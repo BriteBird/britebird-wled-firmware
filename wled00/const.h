@@ -221,6 +221,7 @@ static_assert(WLED_MAX_BUSSES <= 32, "WLED_MAX_BUSSES exceeds hard limit");
 #define USERMOD_ID_BRIGHTNESS_FOLLOW_SUN 57     //Usermod "usermod_v2_brightness_follow_sun.h"
 #define USERMOD_ID_USER_FX               58     //Usermod "user_fx"
 #define USERMOD_ID_BRITEBIRD             59     //Usermod "britebird"
+#define USERMOD_ID_BLE_ONBOARDING        60     //Usermod "BLE_Onboarding"
 
 //Wifi encryption type
 #ifdef WLED_ENABLE_WPA_ENTERPRISE

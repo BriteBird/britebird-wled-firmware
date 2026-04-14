@@ -1,0 +1,14 @@
+{
+  "name": "BLE_Onboarding",
+  "dependencies": [
+    {
+      "owner": "h2zero",
+      "name": "NimBLE-Arduino",
+      "version": "^1.4.2",
+      "platforms": "espressif32"
+    }
+  ],
+  "build": {
+    "libArchive": false
+  }
+}
