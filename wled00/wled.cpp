@@ -848,6 +848,8 @@ void WLED::initInterfaces()
     MDNS.addService("http", "tcp", 80);
     MDNS.addService("wled", "tcp", 80);
     MDNS.addServiceTxt("wled", "tcp", "mac", escapedMac.c_str());
+    MDNS.addService("britebird", "tcp", 80);
+    MDNS.addServiceTxt("britebird", "tcp", "mac", escapedMac.c_str());
   }
   server.begin();
 
