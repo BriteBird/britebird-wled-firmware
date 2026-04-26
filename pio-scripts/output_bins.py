@@ -23,9 +23,10 @@ def create_release(source):
     release_name_def = _get_cpp_define_value(env, "WLED_RELEASE_NAME")
     if release_name_def:
         release_name = release_name_def.replace("\\\"", "")
+        wled_brand = _get_cpp_define_value(env, "WLED_BRAND").replace("\\\"", "").strip().upper() or "WLED"
         with open("package.json", "r") as package:
-            version = json.load(package)["version"]        
-        release_file = os.path.join(OUTPUT_DIR, "release", f"WLED_{version}_{release_name}.bin")
+            version = json.load(package)["version"]
+        release_file = os.path.join(OUTPUT_DIR, "release", f"{wled_brand}_{version}_{release_name}.bin")
         release_gz_file = release_file + ".gz"
         print(f"Copying {source} to {release_file}")
         shutil.copy(source, release_file)
