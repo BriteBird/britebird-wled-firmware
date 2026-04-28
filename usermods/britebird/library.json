@@ -1,0 +1,5 @@
+{
+  "name": "britebird",
+  "build": { "libArchive": false },
+  "dependencies": {}
+}
