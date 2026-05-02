@@ -1015,6 +1015,16 @@ void Segment::refreshLightCapabilities() const {
 }
 
 /*
+ * Fills individualLED segment with color
+ */
+void Segment::fillIndividual() const {
+  for(uint16_t i = 0; i < SEGLEN; i++) {
+    if ((i + SEGMENT.start) >= strip.getIndividualLedCount()) return;
+    setPixelColor(i, strip.getIndividualLedColor(i + SEGMENT.start));
+  }
+}
+
+/*
  * Fills segment with color
  */
 void Segment::fill(uint32_t c) const {
@@ -1249,6 +1259,11 @@ void WS2812FX::finalizeInit() {
 
   Segment::maxWidth  = _length;
   Segment::maxHeight = 1;
+
+  size_t individualLedCount = min(_length, (uint16_t)(MAX_INDIVIDUAL_LED_COUNT));
+  // _individualLed.reserve(individualLedCount); // reserve capacity to prevent fragmentation from individual LED buffer (re)allocations, actual size is tracked by _individualLedCount
+  // _individualLed.assign(individualLedCount, 0);
+  _individualLed.assign(individualLedCount, RGBW32(0, 200, 255, 0));
 
   //segments are created in makeAutoSegments();
   DEBUG_PRINTLN(F("Loading custom palettes"));
@@ -2088,6 +2103,11 @@ bool WS2812FX::deserializeMap(unsigned n) {
   releaseJSONBufferLock();
   return (customMappingSize > 0);
 }
+
+size_t WS2812FX::getIndividualLedCount() const { return _individualLed.size(); } // returns number of individual led colors stored (should be equal to mode count)
+uint32_t WS2812FX::getIndividualLedColor(unsigned i) const { return (i < _individualLed.size()) ? _individualLed[i] : 0; } // returns stored color for individual led, black if out of bounds
+void WS2812FX::setIndividualLedColor(unsigned i, uint32_t c) { if (i < _individualLed.size()) _individualLed[i] = c; } // sets stored color for individual led, does nothing if out of bounds
+void WS2812FX::setIndividualLedColor(unsigned i, byte r, byte g, byte b, byte w) { if (i < _individualLed.size()) _individualLed[i] = RGBW32(r,g,b,w); } // sets stored color for individual led, does nothing if out of bounds
 
 
 const char JSON_mode_names[] PROGMEM = R"=====(["FX names moved"])=====";

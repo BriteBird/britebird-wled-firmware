@@ -131,12 +131,21 @@ static um_data_t* getAudioData() {
 // effect functions
 
 /*
+ * Individual static light.
+ */
+void mode_individual(void) {
+  SEGMENT.fillIndividual();
+}
+static const char _data_FX_MODE_INDIVIDUAL[] PROGMEM = "Individual@;;";
+
+
+/*
  * No blinking. Just plain old static light.
  */
 void mode_static(void) {
   SEGMENT.fill(SEGCOLOR(0));
 }
-static const char _data_FX_MODE_STATIC[] PROGMEM = "Solid";
+static const char _data_FX_MODE_STATIC[] PROGMEM = "Solid@;!;;01";
 
 /*
  * Copy a segment and perform (optional) color adjustments
@@ -10969,16 +10978,23 @@ uint8_t WS2812FX::addEffect(uint8_t id, mode_ptr mode_fn, const char *mode_name)
 }
 
 void WS2812FX::setupEffectData() {
-  // Solid must be first! (assuming vector is empty upon call to setup)
-  _mode.push_back(&mode_static);
-  _modeData.push_back(_data_FX_MODE_STATIC);
+  // // Solid must be first! (assuming vector is empty upon call to setup)
+  // _mode.push_back(&mode_static);
+  // _modeData.push_back(_data_FX_MODE_STATIC);
+  // Individual must be first! (assuming vector is empty upon call to setup)
+  _mode.push_back(&mode_individual);
+  _modeData.push_back(_data_FX_MODE_INDIVIDUAL);
+
   // fill reserved word in case there will be any gaps in the array
   for (size_t i=1; i<_modeCount; i++) {
     _mode.push_back(&mode_static);
     _modeData.push_back(_data_RESERVED);
   }
+
+  // Pushing solid to index 1, allowing Individual to be pushed at index 0.
+  addEffect(FX_MODE_STATIC, &mode_static, _data_FX_MODE_STATIC);
   // now replace all pre-allocated effects
-  addEffect(FX_MODE_COPY, &mode_copy_segment, _data_FX_MODE_COPY);
+  // addEffect(FX_MODE_COPY, &mode_copy_segment, _data_FX_MODE_COPY);
   // --- 1D non-audio effects ---
   addEffect(FX_MODE_BLINK, &mode_blink, _data_FX_MODE_BLINK);
   addEffect(FX_MODE_BREATH, &mode_breath, _data_FX_MODE_BREATH);

@@ -144,12 +144,13 @@ extern byte realtimeMode;           // used in getMappedPixelIndex()
 #define REVERSE      (uint16_t)0x0002
 #define SELECTED     (uint16_t)0x0001
 
-#define FX_MODE_STATIC                   0
-#define FX_MODE_BLINK                    1
-#define FX_MODE_BREATH                   2
-#define FX_MODE_COLOR_WIPE               3
-#define FX_MODE_COLOR_WIPE_RANDOM        4
-#define FX_MODE_RANDOM_COLOR             5
+#define FX_MODE_INDIVIDUAL               0
+#define FX_MODE_STATIC                   1
+#define FX_MODE_BLINK                    2
+#define FX_MODE_BREATH                   3
+#define FX_MODE_COLOR_WIPE               4
+#define FX_MODE_COLOR_WIPE_RANDOM        5
+#define FX_MODE_RANDOM_COLOR            77
 #define FX_MODE_COLOR_SWEEP              6
 #define FX_MODE_DYNAMIC                  7
 #define FX_MODE_RAINBOW                  8
@@ -222,7 +223,7 @@ extern byte realtimeMode;           // used in getMappedPixelIndex()
 #define FX_MODE_LAKE                    75
 #define FX_MODE_METEOR                  76
 //#define FX_MODE_METEOR_SMOOTH           77  // replaced by Meteor
-#define FX_MODE_COPY                    77
+//#define FX_MODE_COPY                    77  // replace by Random Color, to make slot available for Individual effect at index 0.
 #define FX_MODE_RAILWAY                 78
 #define FX_MODE_RIPPLE                  79
 #define FX_MODE_TWINKLEFOX              80
@@ -700,6 +701,7 @@ class Segment {
     [[gnu::hot]] bool isPixelClipped(int i) const;
     [[gnu::hot]] uint32_t getPixelColor(int i) const;
     // 1D support functions (some implement 2D as well)
+    void fillIndividual() const;
     void blur(uint8_t, bool smear = false) const;
     void clear() const { fill(BLACK); } // clear segment
     void fill(uint32_t c) const;
@@ -869,6 +871,7 @@ class WS2812FX {
       _mode.clear();
       _modeData.clear();
       _segments.clear();
+      _individualLed.clear();
 #ifndef WLED_DISABLE_2D
       panel.clear();
 #endif
@@ -957,7 +960,7 @@ class WS2812FX {
     inline uint32_t getPixelColorNoMap(unsigned n) const { return (n < getLengthTotal()) ? _pixels[n] : 0; } // ignores mapping table
     inline uint32_t getLastShow() const             { return _lastShow; }                 // returns millis() timestamp of last strip.show() call
 
-    const char *getModeData(unsigned id = 0) const  { return (id && id < _modeCount) ? _modeData[id] : PSTR("Solid"); }
+    const char *getModeData(unsigned id = 0) const  { return (id < _modeCount) ? _modeData[id] : PSTR("Solid"); }
     inline const char **getModeDataSrc()            { return &(_modeData[0]); }           // vectors use arrays for underlying data
 
     Segment&        getSegment(unsigned id);
@@ -965,7 +968,11 @@ class WS2812FX {
     inline Segment& getMainSegment()      { return _segments[getMainSegmentId()]; }       // returns reference to main segment
     inline Segment* getSegments()         { return &(_segments[0]); }                     // returns pointer to segment vector structure (warning: use carefully)
 
-  // 2D support (panels)
+    size_t getIndividualLedCount() const; // returns number of individual led colors stored (should be equal to mode count)
+    uint32_t getIndividualLedColor(unsigned i) const; // returns stored color for individual led, black if out of bounds
+    void setIndividualLedColor(unsigned i, uint32_t c); // sets stored color for individual led, does nothing if out of bounds
+    void setIndividualLedColor(unsigned i, byte r, byte g, byte b, byte w = 0); // sets stored color for individual led, does nothing if out of bounds
+    // 2D support (panels)
 
 #ifndef WLED_DISABLE_2D
     struct Panel {
@@ -1040,6 +1047,7 @@ class WS2812FX {
     uint8_t                  _modeCount;
     std::vector<mode_ptr>    _mode;     // SRAM footprint: 4 bytes per element
     std::vector<const char*> _modeData; // mode (effect) name and its slider control data array
+    std::vector<u_int32_t> _individualLed; // stores current palette for each mode (effects can use their own palette or global palette)
 
     show_callback _callback;
 

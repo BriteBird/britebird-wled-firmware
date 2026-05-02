@@ -45,7 +45,8 @@ static inline void sendJSON(){
     unsigned used = strip.getLengthTotal();
     Serial.write('[');
     for (unsigned i=0; i<used; i++) {
-      Serial.print(strip.getPixelColor(i));
+      uint32_t c = strip.getPixelColor(i);
+      Serial.printf_P(strip.hasWhiteChannel() ? PSTR("%06X%02X") : PSTR("%06X"), (unsigned)(c & 0xFFFFFF), (unsigned)W(c));
       if (i != used-1) Serial.write(',');
     }
     Serial.println("]");
@@ -69,6 +70,21 @@ static void sendBytes(){
     Serial.write(0x36); Serial.write('\n');
   }
 }
+
+static inline void sendIndividualLeds(){
+  if (serialCanTX) {
+    unsigned used = strip.getIndividualLedCount();
+    Serial.write('[');
+    for (unsigned i=0; i<used; i++) {
+      uint32_t c = strip.getIndividualLedColor(i);
+      Serial.printf_P(strip.hasWhiteChannel() ? PSTR("%06X%02X") : PSTR("%06X"), (unsigned)(c & 0xFFFFFF), (unsigned)W(c));
+      if (i != used-1) Serial.write(',');
+    }
+    Serial.println("]");
+  }
+}
+
+
 
 void handleSerial()
 {
@@ -101,6 +117,7 @@ void handleSerial()
         else if (next == 0xB7) { updateBaudRate(1500000); }
         else if (next == 'l')  { sendJSON(); } // Send LED data as JSON Array
         else if (next == 'L')  { sendBytes(); } // Send LED data as TPM2 Data Packet
+        else if (next == 'i')  { sendIndividualLeds(); } // Send individual LED data as JSON Array
         else if (next == 'o')  { continuousSendLED = false; } // Disable Continuous Serial Streaming
         else if (next == 'O')  { continuousSendLED = true; } // Enable Continuous Serial Streaming
         else if (next == '{')  { //JSON API

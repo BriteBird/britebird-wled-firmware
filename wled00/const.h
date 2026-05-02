@@ -744,4 +744,9 @@ static_assert(WLED_MAX_BUSSES <= 32, "WLED_MAX_BUSSES exceeds hard limit");
 #define WLED_O2_ATTR __attribute__((optimize("O2")))
 #define WLED_O3_ATTR __attribute__((optimize("O3")))
 
+// individual LEd Array
+#ifndef MAX_INDIVIDUAL_LED_COUNT
+  #define MAX_INDIVIDUAL_LED_COUNT 1600
+#endif
+
 #endif

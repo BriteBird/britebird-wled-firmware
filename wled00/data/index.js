@@ -570,7 +570,7 @@ async function loadFXData(retry=0) {
 		.then(json => {
 			fxdata = json||[];
 			fxdata.shift();
-			fxdata.unshift(";!;");
+			fxdata.unshift(";;");
 			resolve();
 		})
 		.catch((e) => {
@@ -930,6 +930,7 @@ function populateEffects()
 	var effects = eJson;
 	var html = "";
 
+	effects.shift(); // temporary remove individual
 	effects.shift(); // temporary remove solid
 	for (let i = 0; i < effects.length; i++) {
 		effects[i] = {
@@ -939,8 +940,12 @@ function populateEffects()
 	}
 	effects.sort((a,b) => (a.name).localeCompare(b.name));
 	effects.unshift({
-		"id": 0,
+		"id": 1,
 		"name": "Solid"
+	});
+	effects.unshift({
+		"id": 0,
+		"name": "Individual"
 	});
 
 	for (let ef of effects) {
