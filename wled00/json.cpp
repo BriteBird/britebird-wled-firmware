@@ -67,6 +67,23 @@ namespace {
   }
 }
 
+// parses a JSON color value (array [r,g,b,w] or hex string "RRGGBB") into rgbw[4]
+static uint32_t parseJsonColor(JsonVariant val) {
+  int rgbw[] = {0,0,0,0};
+  JsonArray icol = val;
+  if (!icol.isNull()) { //array, e.g. [255,0,0]
+    byte sz = icol.size();
+    if (sz > 0 && sz < 5) copyArray(icol, rgbw);
+  } else { //hex string, e.g. "FF0000"
+    byte brgbw[] = {0,0,0,0};
+    const char* hexCol = val;
+    if (colorFromHexString(brgbw, hexCol)) {
+      for (size_t c = 0; c < 4; c++) rgbw[c] = brgbw[c];
+    }
+  }
+  return RGBW32(rgbw[0], rgbw[1], rgbw[2], rgbw[3]);
+}
+
 static bool deserializeSegment(JsonObject elem, byte it, byte presetId = 0)
 {
   byte id = elem["id"] | it;
@@ -308,18 +325,46 @@ static bool deserializeSegment(JsonObject elem, byte it, byte presetId = 0)
 
   getVal(elem["bm"], seg.blendMode);
 
+  JsonArray irarr = elem[F("ir")]; //repeat individual LEDs on entire seg
+  if (!irarr.isNull()) {
+    uint16_t i = 0, j = 0, seglen = seg.stop - seg.start;
+
+    if (seg.mode != FX_MODE_INDIVIDUAL) {
+      if (!presetId && currentPlaylist>=0) unloadPlaylist();
+      if (fx != seg.mode) seg.setMode(fx, elem[F("fxdef")]); // use transition (WARNING: may change map1D2D causing geometry change)
+    }
+
+    while(i < seglen){
+      if(irarr[j].is<const char*>() || irarr[j].is<JsonArray>()) {
+        uint32_t c = parseJsonColor(irarr[j]);
+        strip.setIndividualLedColor(seg.start + i, c);
+        i++;
+      }
+      j++;
+      if (j >= irarr.size()) {
+        if (i == 0) break;
+        j = 0;
+      }
+    }
+  }
+
+
+
   JsonArray iarr = elem[F("i")]; //set individual LEDs
   if (!iarr.isNull()) {
     // set brightness immediately and disable transition
     jsonTransitionOnce = true;
-    if (seg.isInTransition()) seg.startTransition(0); // setting transition time to 0 will stop transition in next frame
-    strip.setTransition(0);
-    strip.setBrightness(bri, true);
 
-    // freeze and init to black
-    if (!seg.freeze) {
-      seg.freeze = true;
-      seg.clear();
+    if (seg.mode != FX_MODE_INDIVIDUAL){
+      if (seg.isInTransition()) seg.startTransition(0); // setting transition time to 0 will stop transition in next frame
+      strip.setTransition(0);
+      strip.setBrightness(bri, true);
+
+      // freeze and init to black
+      if (!seg.freeze) {
+        seg.freeze = true;
+        seg.clear();
+      }
     }
 
     unsigned iStart = 0, iStop = 0;
@@ -335,26 +380,16 @@ static bool deserializeSegment(JsonObject elem, byte it, byte presetId = 0)
           iSet++;
         }
       } else { //color
-        uint8_t rgbw[] = {0,0,0,0};
-        JsonArray icol = iarr[i];
-        if (!icol.isNull()) { //array, e.g. [255,0,0]
-          byte sz = icol.size();
-          if (sz > 0 && sz < 5) copyArray(icol, rgbw);
-        } else { //hex string, e.g. "FF0000"
-          byte brgbw[] = {0,0,0,0};
-          const char* hexCol = iarr[i];
-          if (colorFromHexString(brgbw, hexCol)) {
-            for (size_t c = 0; c < 4; c++) rgbw[c] = brgbw[c];
-          }
-        }
-
         if (iSet < 2 || iStop <= iStart) iStop = iStart + 1;
-        uint32_t c = RGBW32(rgbw[0], rgbw[1], rgbw[2], rgbw[3]);
-        while (iStart < iStop) seg.setRawPixelColor(iStart++, c); // sets pixel color without 1D->2D expansion, grouping or spacing
+        uint32_t c = parseJsonColor(iarr[i]);
+        while (iStart < iStop) {
+          if (seg.mode == FX_MODE_INDIVIDUAL) strip.setIndividualLedColor(iStart++, c); // sets pixel color with 1D->2D expansion, grouping and spacing if applicable
+          else seg.setRawPixelColor(iStart++, c); // sets pixel color without 1D->2D expansion, grouping or spacing
+        }
         iSet = 0;
       }
     }
-    strip.trigger(); // force segment update
+    if (seg.mode != FX_MODE_INDIVIDUAL) strip.trigger(); // force segment update
   }
   // send UDP/WS if segment options changed (except selection; will also deselect current preset)
   if (differs(seg, prev) & ~SEG_DIFFERS_SEL) stateChanged = true;
