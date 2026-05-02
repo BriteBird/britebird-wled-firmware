@@ -1,6 +1,6 @@
 #include "wled.h"
 
-#ifndef WLED_DISABLE_MQTT
+
 
 /*
  * Britebird usermod: publishes the /json/info object as JSON payload to
@@ -14,6 +14,7 @@ class BritebirdUsermod : public Usermod {
 
   // static constexpr uint32_t INFO_PUBLISH_INTERVAL_MS = 5UL * 60UL * 1000UL; // 5 min
 
+#ifndef WLED_DISABLE_MQTT
   void publishInfo() {
     if (!WLED_MQTT_CONNECTED) return;
     if (!requestJSONBufferLock(USERMOD_ID_BRITEBIRD)) return;
@@ -32,6 +33,11 @@ class BritebirdUsermod : public Usermod {
     // lastInfoPublish = millis();
   }
 
+  void onMqttConnect(bool sessionPresent) override {
+    publishInfoPending = true;
+  }
+#endif  // WLED_DISABLE_MQTT
+
  public:
   void setup() override {
     // lastInfoPublish = millis(); // avoid immediate publish before MQTT connects
@@ -39,6 +45,7 @@ class BritebirdUsermod : public Usermod {
   }
 
   void loop() override {
+#ifndef WLED_DISABLE_MQTT
     if (!initDone || !WLED_MQTT_CONNECTED) return;
 
     if (publishInfoPending) {
@@ -48,11 +55,9 @@ class BritebirdUsermod : public Usermod {
     // else if (millis() - lastInfoPublish > INFO_PUBLISH_INTERVAL_MS) {
     //   publishInfo();
     // }
+#endif  // WLED_DISABLE_MQTT
   }
 
-  void onMqttConnect(bool sessionPresent) override {
-    publishInfoPending = true;
-  }
 
   void addToJsonInfo(JsonObject& root) override {
     JsonObject user = root["u"];
@@ -69,4 +74,3 @@ class BritebirdUsermod : public Usermod {
 BritebirdUsermod britebird_usermod;
 REGISTER_USERMOD(britebird_usermod);
 
-#endif  // WLED_DISABLE_MQTT
